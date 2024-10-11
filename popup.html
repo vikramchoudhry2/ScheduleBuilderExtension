@@ -13,12 +13,23 @@
       border: none;
       padding: 10px 20px;
       cursor: pointer;
+      margin-top: 10px;
+    }
+    button:disabled {
+      background-color: #c4c4c4;
+      cursor: not-allowed;
     }
   </style>
 </head>
 <body>
   <h1>Add Classes to Google Calendar</h1>
-  <button id="startScraping">Start Scraping</button>
+
+  <!-- Login Button -->
+  <button id="loginBtn">Login with Google</button>
+
+  <!-- Scraping Button, disabled initially -->
+  <button id="startScraping" disabled>Start Scraping</button>
+
   <script src="popup.js"></script>
 </body>
 </html>
