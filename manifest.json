@@ -1,0 +1,37 @@
+{
+    "manifest_version": 3,
+    "name": "UCD Schedule to Calendar",
+    "description": "Scrape UC Davis Schedule Builder and export events to Google Calendar or another calendar of your choice.",
+    "version": "1.0",
+    "permissions": [
+      "activeTab",
+      "scripting",
+      "storage",
+      "identity",
+      "identity.email"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+      }
+    },
+    "content_scripts": [
+      {
+        "matches": ["*://schedulebuilder.ucdavis.edu/*"],
+        "js": ["content.js"]
+      }
+    ],
+    "oauth2": {
+      "client_id": "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+      "scopes": [
+        "https://www.googleapis.com/auth/calendar.events"
+      ]
+    }
+  }
+  
