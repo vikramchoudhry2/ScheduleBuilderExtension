@@ -10,6 +10,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             }
 
             schedule.forEach(course => {
+                // Create a Google Calendar event object
                 const event = {
                     summary: course.courseName,
                     location: course.lecture.location,
@@ -25,6 +26,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${convertDaysToRecurrence(course.lecture.days)}`]
                 };
 
+                // Add the event to Google Calendar
                 fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
                     method: 'POST',
                     headers: {
@@ -40,6 +42,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 .catch(error => {
                     console.error('Error creating event:', error);
                 });
+
+                // Handle the discussion separately if it exists
+                if (course.discussion) {
+                    const discussionEvent = {
+                        summary: `${course.courseName} - Discussion`,
+                        location: course.discussion.location,
+                        description: `Instructor: ${course.instructor}`,
+                        start: {
+                            dateTime: convertToISO(course.discussion.days, course.discussion.time),
+                            timeZone: 'America/Los_Angeles' // Adjust this as necessary
+                        },
+                        end: {
+                            dateTime: convertToISO(course.discussion.days, course.discussion.time, true),
+                            timeZone: 'America/Los_Angeles'
+                        },
+                        recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${convertDaysToRecurrence(course.discussion.days)}`]
+                    };
+
+                    fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(discussionEvent)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Discussion Event created:', data);
+                    })
+                    .catch(error => {
+                        console.error('Error creating discussion event:', error);
+                    });
+                }
             });
         });
     }
@@ -47,13 +83,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // Helper function to convert course days and time into ISO format
 function convertToISO(days, time, isEnd = false) {
-    // Add logic to parse days and time to a valid ISO date string
+    // Parse time to ISO string format
     const startTime = time.split('-')[0].trim();
     const [hours, minutes, period] = startTime.match(/(\d+):(\d+) (AM|PM)/).slice(1);
     let hour = period === 'PM' && hours !== '12' ? parseInt(hours) + 12 : parseInt(hours);
     const isoDate = new Date();
     isoDate.setHours(hour);
     isoDate.setMinutes(parseInt(minutes));
+
+    if (isEnd) {
+        // Add an hour for the end time (or adjust as necessary)
+        isoDate.setHours(isoDate.getHours() + 1);
+    }
+
     return isoDate.toISOString();
 }
 

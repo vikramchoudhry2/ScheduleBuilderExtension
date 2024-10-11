@@ -9,7 +9,7 @@
     "scripting"
   ],
   "oauth2": {
-    "client_id": "YOUR_GOOGLE_WEB_APP_CLIENT_ID",
+    "client_id": "733721769568-mumfnvcbrtfg1j5eps8muftq8qfkh6v1.apps.googleusercontent.com",
     "scopes": ["https://www.googleapis.com/auth/calendar"]
   },
   "background": {
