@@ -1,23 +1,24 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>UCD Schedule to Calendar</title>
-    <style>
-      body { font-family: Arial, sans-serif; }
-      #sync-btn { padding: 10px; background-color: #4285F4; color: white; border: none; cursor: pointer; }
-      #sync-btn:hover { background-color: #357ae8; }
-    </style>
-  </head>
-  <body>
-    <h3>Schedule Sync</h3>
-    <p>Select Calendar:</p>
-    <select id="calendar-select">
-      <option value="google">Google Calendar</option>
-      <option value="outlook">Outlook</option>
-      <option value="ics">Export as .ics</option>
-    </select>
-    <br/><br/>
-    <button id="sync-btn">Sync to Calendar</button>
-    <script src="popup.js"></script>
-  </body>
+<head>
+  <title>Add Classes to Calendar</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Add Classes to Google Calendar</h1>
+  <button id="startScraping">Start Scraping</button>
+  <script src="popup.js"></script>
+</body>
 </html>
