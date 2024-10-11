@@ -9,15 +9,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 return;
             }
 
+            if (!token) {
+                console.error("No token retrieved. Cannot proceed.");
+                return;
+            }
+
+            console.log('OAuth Token Retrieved:', token); // Make sure the token is retrieved correctly
+
             schedule.forEach(course => {
-                // Create a Google Calendar event object
                 const event = {
                     summary: course.courseName,
                     location: course.lecture.location,
                     description: `Instructor: ${course.instructor}`,
                     start: {
                         dateTime: convertToISO(course.lecture.days, course.lecture.time),
-                        timeZone: 'America/Los_Angeles' // Adjust this as necessary
+                        timeZone: 'America/Los_Angeles'
                     },
                     end: {
                         dateTime: convertToISO(course.lecture.days, course.lecture.time, true),
@@ -26,7 +32,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     recurrence: [`RRULE:FREQ=WEEKLY;BYDAY=${convertDaysToRecurrence(course.lecture.days)}`]
                 };
 
-                // Add the event to Google Calendar
                 fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
                     method: 'POST',
                     headers: {
@@ -51,7 +56,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         description: `Instructor: ${course.instructor}`,
                         start: {
                             dateTime: convertToISO(course.discussion.days, course.discussion.time),
-                            timeZone: 'America/Los_Angeles' // Adjust this as necessary
+                            timeZone: 'America/Los_Angeles'
                         },
                         end: {
                             dateTime: convertToISO(course.discussion.days, course.discussion.time, true),
@@ -101,6 +106,5 @@ function convertToISO(days, time, isEnd = false) {
 
 // Helper function to convert days to recurrence rule
 function convertDaysToRecurrence(days) {
-    // Convert days like "TR" into a recurrence rule like "TU,TH"
     return days.replace(/T/g, 'TU').replace(/R/g, 'TH').replace(/M/g, 'MO').replace(/W/g, 'WE').replace(/F/g, 'FR');
 }
