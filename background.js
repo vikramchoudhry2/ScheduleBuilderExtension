@@ -2,7 +2,7 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'schedule_scraped') {
         const schedule = message.data;
-        const startDate = new Date(message.startDate); 
+        const startDate = new Date(message.startDate);
 
         if (isNaN(startDate.getTime())) {
             console.error("Invalid start date provided to background.js:", message.startDate);
@@ -19,7 +19,6 @@ function authenticateAndProcessSchedule(schedule, startDate) {
     chrome.identity.getAuthToken({ interactive: true }, (token) => {
         if (chrome.runtime.lastError || !token) {
             console.error('Authentication failed:', chrome.runtime.lastError.message);
-            notifyUser('Authentication failed. Please try again.');
             return;
         }
 
@@ -30,69 +29,33 @@ function authenticateAndProcessSchedule(schedule, startDate) {
 
 // get each course and create unique events for lectures and discussions
 function processSchedule(schedule, token, startDate) {
-    const uniqueEvents = new Set(); // prevent duplicate with a set
+    const uniqueEvents = new Set();
 
-    schedule.forEach(course => {
+    schedule.forEach((course, index) => {
         const lectureKey = `${course.courseName}-Lecture`;
         const discussionKey = `${course.courseName}-Discussion`;
 
         // create unique lec and disc events
         if (course.lecture && !uniqueEvents.has(lectureKey)) {
             uniqueEvents.add(lectureKey);
-            const lectureEvent = createEvent(course.courseName, course.instructor, course.lecture, token, startDate);
+            const lectureEvent = createEvent(course.courseName, course.instructor, course.lecture, startDate);
             if (lectureEvent) {
-                sendCalendarEvent(lectureEvent, token, lectureKey);
+                setTimeout(() => sendCalendarEvent(lectureEvent, token, lectureKey), index * 200);
             }
         }
 
         if (course.discussion && !uniqueEvents.has(discussionKey)) {
             uniqueEvents.add(discussionKey);
-            const discussionEvent = createEvent(course.courseName, course.instructor, course.discussion, token, startDate);
+            const discussionEvent = createEvent(course.courseName, course.instructor, course.discussion, startDate);
             if (discussionEvent) {
-                sendCalendarEvent(discussionEvent, token, discussionKey);
+                setTimeout(() => sendCalendarEvent(discussionEvent, token, discussionKey), (index + 1) * 200);
             }
         }
     });
 }
 
-// send the event to gcal API and format
-function sendCalendarEvent(event, token, eventName) {
-    fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(event)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            console.error('Error creating event:', data.error.message || data.error);
-            notifyUser(`Failed to add ${eventName} to Google Calendar: ${data.error.message}`);
-        } else {
-            console.log('Event created:', data);
-            notifyUser(`Successfully added ${eventName} to Google Calendar.`);
-        }
-    })
-    .catch(error => {
-        console.error('Error creating event:', error);
-        notifyUser(`Failed to add ${eventName} to Google Calendar.`);
-    }, 100);
-}
-
-// display notification to user
-function notifyUser(message) {
-    chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icon.png', // icon.png just a filler shit not a thing yet
-        title: 'Google Calendar Integration',
-        message: message
-    });
-}
-
-// create event object to send gcal api, limit to 10 weeks
-function createEvent(courseName, instructor, session, token, startDate) {
+// create the event and recurrence rule to throw everything onto the cal
+function createEvent(courseName, instructor, session, startDate) {
     try {
         const startDateTime = convertToISO(session.days, session.time, startDate);
         const endDateTime = convertToISO(session.days, session.time, startDate, true);
@@ -102,8 +65,13 @@ function createEvent(courseName, instructor, session, token, startDate) {
             return null; 
         }
 
-        // recurrence rule to cover the quarter
-        const recurrenceRule = `RRULE:FREQ=WEEKLY;COUNT=10;BYDAY=${convertDaysToRecurrence(session.days)}`;
+        // Calculate the UNTIL date, 10 weeks from the start date we gave it
+        const untilDate = new Date(startDateTime);
+        untilDate.setDate(untilDate.getDate() + 7 * 10);
+        const untilDateISO = untilDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+        // Use WEEKLY frequency with UNTIL date for exactly 10 weeks
+        const recurrenceRule = `RRULE:FREQ=WEEKLY;UNTIL=${untilDateISO};BYDAY=${convertDaysToRecurrence(session.days)}`;
         console.log(`Creating event for ${courseName} (${session.type}) with recurrence rule: ${recurrenceRule}`);
         
         return {
@@ -126,41 +94,56 @@ function createEvent(courseName, instructor, session, token, startDate) {
     }
 }
 
-// convert date/time to an ISO format that gcal requires
-function convertToISO(days, time, startDate, isEnd = false) {
-    // have it start from the start date we get from popup
-    if (isNaN(startDate.getTime())) {
-        console.error("Invalid start date provided to convertToISO.");
-        return null;
-    }
 
+// send an event to gcal
+function sendCalendarEvent(event, token, eventName) {
+    fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(event)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            console.error('Error creating event:', data.error.message || data.error);
+        } else {
+            console.log('Event created:', data);
+        }
+    })
+    .catch(error => {
+        console.error('Error creating event:', error);
+    });
+}
+
+// ensure the first instance of a recurring event aligns with the correct day
+function convertToISO(days, time, startDate, isEnd = false) {
     const timeParts = time.split('-');
     const timeString = isEnd && timeParts[1] ? timeParts[1].trim() : timeParts[0].trim();
 
-    // parse the time string
     const timeMatch = timeString.match(/(\d+):(\d+) (AM|PM)/);
     if (!timeMatch) {
-        console.error(`Invalid time format for ${timeString} in convertToISO. Expected format: HH:MM AM/PM`);
+        console.error(`Invalid time format: ${timeString}`);
         return null;
     }
 
-    const [hours, minutes, period] = timeMatch.slice(1);
-    let hour = parseInt(hours) % 12;
-    if (period === 'PM') hour += 12;
+    let [_, hours, minutes, period] = timeMatch;
+    hours = parseInt(hours) + (period === 'PM' && hours !== "12" ? 12 : 0);
 
     const targetDate = new Date(startDate);
     const dayMap = { M: 1, T: 2, W: 3, R: 4, F: 5 };
     const targetDay = dayMap[days[0]];
 
-    const daysUntilNext = (targetDay - startDate.getDay() + 7) % 7 || 7;
+    const daysUntilNext = (targetDay - startDate.getDay() + 7) % 7;
     targetDate.setDate(startDate.getDate() + daysUntilNext);
-    targetDate.setHours(hour, parseInt(minutes), 0, 0);
+    targetDate.setHours(hours, parseInt(minutes), 0, 0);
 
-    console.log("convertToISO target date:", targetDate);
     return targetDate.toISOString();
 }
 
-// convert schedule builder days to gcal recurrence format
+// conver to gcal recurrence format
 function convertDaysToRecurrence(days) {
     const dayMap = { M: 'MO', T: 'TU', W: 'WE', R: 'TH', F: 'FR' };
     return days.split('').map(day => dayMap[day] || '').join(',');
