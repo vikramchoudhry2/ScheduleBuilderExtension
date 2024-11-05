@@ -1,8 +1,7 @@
-// DOM elements
 const loginBtn = document.getElementById('loginBtn');
 const startScrapingBtn = document.getElementById('startScraping');
 
-// Function to get the OAuth token
+// auth and get token
 function authenticate() {
     chrome.identity.getAuthToken({ interactive: true }, function(token) {
         if (chrome.runtime.lastError) {
@@ -19,21 +18,64 @@ function authenticate() {
 
         console.log('Authenticated, token:', token);
 
-        // Enable the scraping button once the user is authenticated
+        // enable scraping button after successful login
         startScrapingBtn.disabled = false;
         alert('Login successful! You can now start scraping.');
     });
 }
 
-// Event listener for the login button
+// login button event listener
 loginBtn.addEventListener('click', () => {
-    authenticate();  // Authenticate when the login button is clicked
+    authenticate();
 });
 
-// Event listener for the scraping button
+// scrape button event listener
 startScrapingBtn.addEventListener('click', () => {
-    // Send message to start scraping
+    const startDateInput = document.getElementById('startDate').value;
+
+    if (!startDateInput) {
+        alert('Please enter a start date.');
+        return;
+    }
+
+    const startDate = new Date(startDateInput);
+    if (isNaN(startDate.getTime())) {
+        alert('Invalid start date. Please enter a valid date.');
+        return;
+    }
+
+    console.log("Sending startDate to content script:", startDate.toISOString());
+
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'start_scraping' });
+        const tabId = tabs[0].id;
+        const url = tabs[0].url;
+
+        if (!url.includes("my.ucdavis.edu/schedulebuilder")) {
+            alert('Please navigate to the Schedule Builder page and try again.');
+            return;
+        }
+
+        chrome.scripting.executeScript(
+            { target: { tabId: tabId }, files: ['content.js'] },
+            () => {
+                if (chrome.runtime.lastError) {
+                    console.error('Content script injection failed:', chrome.runtime.lastError.message);
+                    alert('Failed to inject content script. Ensure you are on the Schedule Builder page.');
+                    return;
+                }
+
+                // delay message to ensure content script is ready
+                setTimeout(() => {
+                    chrome.tabs.sendMessage(tabId, { action: 'start_scraping', startDate: startDate.toISOString() }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            console.error('Content script not available:', chrome.runtime.lastError.message);
+                            alert('Content script is not available. Reload the Schedule Builder page and try again.');
+                        } else {
+                            console.log('Scraping started:', response);
+                        }
+                    });
+                }, 100); // 100 ms delay to ensure the content script is fully loaded (NOT helping anything atm)
+            }
+        );
     });
 });

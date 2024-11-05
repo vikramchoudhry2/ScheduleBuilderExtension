@@ -6,10 +6,11 @@
   "permissions": [
     "identity",
     "activeTab",
-    "scripting"
+    "scripting",
+    "notifications"
   ],
   "oauth2": {
-    "client_id": "733721769568-mumfnvcbrtfg1j5eps8muftq8qfkh6v1.apps.googleusercontent.com",
+    "client_id": "720472815747-ueukdgdrcr8lf81v81mc6t8dd7fo524f.apps.googleusercontent.com",
     "scopes": ["https://www.googleapis.com/auth/calendar"]
   },
   "background": {
@@ -20,7 +21,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["*://my.ucdavis.edu/schedulebuilder/*"],
       "js": ["content.js"]
     }
   ]
