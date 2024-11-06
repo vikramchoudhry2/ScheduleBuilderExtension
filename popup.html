@@ -1,38 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Add Classes to Calendar</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UC Davis Class to Google Calendar</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
+      background-color: #f7f9fc;
+      color: #1d2731;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 300px;
+      box-sizing: border-box;
     }
-    button {
-      background-color: #4285f4;
-      color: white;
+
+    h1 {
+      font-size: 18px;
+      color: #002855;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .logo {
+      width: 80px;
+      height: auto;
+      margin-bottom: 15px;
+    }
+
+    label {
+      font-size: 14px;
+      color: #1d2731;
+      margin-bottom: 5px;
+      align-self: flex-start;
+    }
+
+    input[type="date"] {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      margin-bottom: 15px;
+      border: 1px solid #d1d5da;
+      border-radius: 5px;
+    }
+
+    .button {
+      width: 100%;
+      padding: 10px;
+      font-size: 15px;
+      font-weight: bold;
       border: none;
-      padding: 10px 20px;
+      border-radius: 5px;
       cursor: pointer;
       margin-top: 10px;
+      transition: background-color 0.3s ease;
     }
-    button:disabled {
-      background-color: #c4c4c4;
+
+    #loginBtn {
+      background-color: #ffc72c;
+      color: #1d2731;
+    }
+
+    #loginBtn:hover {
+      background-color: #e6ac00;
+    }
+
+    #startScraping {
+      background-color: #002855;
+      color: #ffffff;
+    }
+
+    #startScraping:disabled {
+      background-color: #dcdcdc;
       cursor: not-allowed;
+    }
+
+    #startScraping:hover:enabled {
+      background-color: #001c47;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #666;
+      margin-top: 15px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
+
+  <!-- UC Davis Logo -->
+  <img src="icons/gunrock.webp" alt="UC Davis Logo" class="logo">
+
   <h1>Add Classes to Google Calendar</h1>
 
   <!-- Start Date Input -->
-  <label for="startDate">Start Date:</label>
-  <input type="date" id="startDate">
+  <label for="startDate">Select Start Date:</label>
+  <input type="date" id="startDate" placeholder="Select the term start date">
 
   <!-- Login Button -->
-  <button id="loginBtn">Login with Google</button>
+  <button id="loginBtn" class="button">Login with Google</button>
 
-  <!-- Scraping Button, disabled initially -->
-  <button id="startScraping" disabled>Start Scraping</button>
+  <!-- Start Scraping Button, initially disabled -->
+  <button id="startScraping" class="button" disabled>Start Syncing Classes</button>
+
+  <p class="note">Ensure you are on the UC Davis Schedule Builder page prior to running the extension.</p>
 
   <script src="popup.js"></script>
 </body>
